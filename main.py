@@ -39,31 +39,30 @@ async def debug_code(data: CodeInput):
         if "429" in error_msg or "quota" in error_msg.lower() or "google" in error_msg.lower():
             # Mock high-fidelity response for when the user has no Google AI Studio credits.
             return {"result": f"""
-### 🧠 AI Agent Thought Process
-- [PASSED]: Syntax Analysis: Initial structural check completed. Core syntax looks valid.
-- [FAILED]: Logic Verification: Detected infinite negative loop in `for (let i = 0; i <= 5; i--)`.
-- [SECURE]: Security Audit: No sensitive credentials found in plaintext.
-- [OPTIMIZATION]: Performance Profiling: Identified area for loop speed-up.
+### 🧠 AI Analysis Process
+- Scanned {data.language} codebase for standard syntax constraints.
+- Analyzed common logic flaws and type coercions.
+- Checked structural efficiency.
 
 ### 🚨 Detected Errors
-1. **Infinite Loop**: The decrementing iterator `i--` will never allow `i` to reach the terminating condition of `> 5`. 
-2. **Quota Alert**: Your Google Gemini API Key has no credits left. I am providing a simulated report.
+1. **API Quota Exceeded**: To fully analyze your {data.language} code, please provide a valid Google Gemini API key.
+2. **Infinite Loop Detected (Simulated)**: A simulated iterator `i--` will never allow `i` to reach the terminating condition.
 
 ### 💡 Technical Explanation
-The iterator was decreasing instead of increasing, so the loop would never end! This consumes infinite CPU. Update the GOOGLE_API_KEY in your `.env` for real analysis.
+The AI Engine is currently in mock mode due to API limitations or invalid key. The backend parser confirmed the code structure, but deep reasoning requires an active Google API key. Update the GOOGLE_API_KEY in your `.env` for real multi-language analysis.
 
 ### 🛠️ Fixed Source Code
-```javascript
+```{data.language.lower()}
 // Optimized via DebugMind AI Pro (Gemini)
+// Note: This is a placeholder mock for {data.language}. Update API key!
 for (let i = 0; i <= 5; i++) {{  // Corrected to increment
    console.log(i);
 }}
 ```
 
 ### 🚀 Best Practices & Optimization
-- **Check Iterators**: Always ensure loop counters move towards the exit condition.
-- **Strict Equality**: Always prefer `===` over `==`.
-- **API Setup**: Ensure Google AI Studio credits are available at aistudio.google.com.
+- **Active Connection**: Ensure Google AI Studio credits are available at aistudio.google.com.
+- **Language Parsers**: The backend now natively supports Python, Java, C, C++, C#, HTML, CSS, JavaScript, TypeScript, Go, and Rust.
 """}
 
         return {
