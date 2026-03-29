@@ -6,10 +6,7 @@ uvicorn==0.42.0
 python-dotenv==1.2.2
 pydantic==2.12.5
 
-# LangChain + Google Gemini
-langchain==1.2.13
-langchain-core==1.2.20
-langchain-google-genai==4.2.1
+# Google Gemini AI SDK (direct, no LangChain needed)
 google-genai==1.68.0
 google-auth==2.49.1
 

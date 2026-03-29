@@ -1,36 +1,36 @@
 # ===== IMPORTS =====
 import os
+import sys
 import time
 import warnings
 
-# Suppress Pydantic V1 compatibility warnings (Python 3.14+)
+# Force UTF-8 stdout to avoid charmap errors on Windows
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
+# Suppress Pydantic V1 compatibility warnings
 warnings.filterwarnings("ignore", message="Core Pydantic V1 functionality")
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from google import genai
 from dotenv import load_dotenv
 
 # ===== LOAD ENV =====
 load_dotenv()
 
 # ===== SUPPORTED MODELS (in priority order) =====
-# If one model's quota is exhausted, we fall back to the next
+# These are confirmed available models from the google-genai SDK
 MODELS = [
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
-    "gemini-2.0-flash",
+    "gemini-2.5-flash",       # Latest & most capable, try first
+    "gemini-2.0-flash",       # Fast, reliable fallback
+    "gemini-2.0-flash-lite",  # Lightweight fallback
 ]
 
-# ===== LLM FACTORY =====
-def get_llm(model: str):
+# ===== CLIENT FACTORY =====
+def get_client():
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_API_KEY is not set in .env file.")
-    return ChatGoogleGenerativeAI(
-        model=model,
-        google_api_key=api_key,
-        temperature=0.1,
-        max_retries=2,
-    )
+    return genai.Client(api_key=api_key)
 
 # ===== PROMPT BUILDER =====
 def build_prompt(code: str, language: str) -> str:
@@ -69,28 +69,40 @@ Please structure your final report precisely as follows:
 """
 
 # ===== FUNCTION TO RUN AGENT WITH FALLBACK =====
-def run_agent(code: str, language: str) -> str:
+def run_agent(code: str, language: str) -> tuple:
     """
-    Try each model in priority order.
+    Try each model in priority order using google-genai SDK.
     If a model hits a quota/rate-limit error (429), fall back to the next one.
     Retries once after a short wait on transient errors.
+    Returns a tuple: (response_content: str, model_used: str)
     """
     prompt = build_prompt(code, language)
+    client = get_client()
     last_error = None
 
     for model in MODELS:
         for attempt in range(2):  # up to 2 attempts per model
             try:
-                llm = get_llm(model)
-                response = llm.invoke(prompt)
-                return response.content
+                print(f"[DebugMind] Trying model: {model} (attempt {attempt + 1})")
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                )
+                print(f"[DebugMind] [OK] Success with model: {model}")
+                return response.text, model
 
             except Exception as e:
                 error_str = str(e)
                 last_error = e
 
-                is_quota = "429" in error_str or "RESOURCE_EXHAUSTED" in error_str
+                is_quota = "429" in error_str or "RESOURCE_EXHAUSTED" in error_str.upper()
                 is_rate   = "rate" in error_str.lower()
+                is_auth   = "API_KEY" in error_str.upper() or "invalid api key" in error_str.lower()
+
+                if is_auth:
+                    # Bad API key — no point retrying other models
+                    print(f"[DebugMind] Auth error: {error_str}")
+                    raise
 
                 if is_quota:
                     # This model's daily/minute quota is gone — try next model
@@ -105,7 +117,10 @@ def run_agent(code: str, language: str) -> str:
 
                 else:
                     # Unknown error — surface it immediately
+                    print(f"[DebugMind] Unexpected error on model '{model}': {error_str}")
                     raise
 
     # All models exhausted
-    raise last_error
+    if isinstance(last_error, BaseException):
+        raise last_error
+    raise RuntimeError("All Gemini models are unavailable. Please try again later.")

@@ -51,8 +51,8 @@ async def debug_code(data: CodeInput):
         raise HTTPException(status_code=400, detail="Language field cannot be empty.")
 
     try:
-        result = run_agent(data.code, data.language)
-        return {"result": result}
+        result, model_used = run_agent(data.code, data.language)
+        return {"result": result, "model_used": model_used}
 
     except ValueError as e:
         # Missing API key or config issue
@@ -117,4 +117,4 @@ GOOGLE_API_KEY=AIza...your_new_key...
 # ===== RUN SERVER =====
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=9999)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
