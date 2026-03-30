@@ -1,0 +1,6 @@
+DebugMind Ai backend/
+├── .env.example
+├── .gitignore
+├── agent.py
+├── main.py
+└── requirements.txt
